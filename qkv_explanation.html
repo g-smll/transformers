@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Transformer 注意力可视化 - 我是中国人</title>
+  <style>
+    body { font-family: "Microsoft YaHei", Arial, sans-serif; margin: 0; padding: 24px; color:#222; background:#f6f8fa; }
+    .wrap { max-width: 1100px; margin: 0 auto; background:#fff; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.08); overflow:hidden; }
+    header { background:#3548d4; color:#fff; padding:20px 24px; }
+    header h1 { margin:0 0 6px; font-size:22px; }
+    header p { margin:0; opacity:.9; }
+    main { padding:24px; }
+    .step { border-left:4px solid #3548d4; background:#fafbff; padding:16px 16px 10px; border-radius:8px; margin-bottom:18px; }
+    .step h2 { margin:0 0 8px; font-size:18px; color:#111; }
+    .tokens { display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 4px; }
+    .token { background:#3548d4; color:#fff; padding:8px 14px; border-radius:20px; font-weight:700; }
+    .small { color:#555; font-size:13px; }
+    .box { border:1px solid #e5e7eb; border-radius:8px; padding:10px; margin:10px 0; overflow:auto; background:#fff; }
+    .formula { background:#222; color:#fff; padding:8px 10px; border-radius:6px; font-family:Consolas, monospace; display:inline-block; }
+    table { border-collapse:collapse; width:100%; }
+    th, td { border:1px solid #e5e7eb; padding:6px 8px; text-align:center; font-size:13px; }
+    th { background:#eef2ff; color:#111; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 2px; }
+    .btn { background:#e11d48; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:700; }
+    .btn:hover { filter:brightness(.95); }
+    .hl { background:#fde68a !important; }
+    .muted { color:#6b7280; }
+    .note { background:#fff7ed; border:1px solid #ffedd5; padding:10px; border-radius:8px; font-size:13px; }
+    .example-row-shi { background:#dbeafe !important; font-weight:600; } /* 蓝色背景 - "是"行 */
+    .example-row-zhong { background:#dcfce7 !important; font-weight:600; } /* 绿色背景 - "中"行 */
+    .example-col-d1 { background:#fef3c7 !important; font-weight:600; } /* 黄色背景 - d1列 */
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Transformer 注意力机制可视化</h1>
+      <p>示例输入：我是中国人（5 个字符：我、是、中、国、人）</p>
+    </header>
+    <main>
+      <!-- 步骤 1 -->
+      <section class="step">
+        <h2>1）将输入文本转换为词嵌入向量</h2>
+        <div class="tokens">
+          <div class="token">我</div><div class="token">是</div><div class="token">中</div><div class="token">国</div><div class="token">人</div>
+        </div>
+        <div class="box small">
+          每个字符映射为一个 d_model=8 维向量，例如：我 → [0.26, 0.14, -0.03, 0.20, 0.05, -0.12, 0.08, 0.11]（共 8 维）。位置编码可与词嵌入相加以注入位置信息。
+        </div>
+      </section>
+
+      <!-- 步骤 2 -->
+      <section class="step">
+        <h2>2）通过线性变换生成 Query / Key / Value 矩阵</h2>
+        <div class="box">
+          <span class="formula">Q = X·W_Q，K = X·W_K，V = X·W_V</span>
+          <p class="small" style="margin:8px 0 6px">下方分别给出 Q、K、V 三个矩阵的 8 维完整展示（行=字符，列=维度）。</p>
+
+          <p class="small"><b>Query 矩阵 Q（8 维）</b></p>
+          <table id="qTable">
+            <thead>
+              <tr><th>字符</th><th>d1</th><th>d2</th><th>d3</th><th>d4</th><th>d5</th><th>d6</th><th>d7</th><th>d8</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>我</td><td>0.21</td><td>-0.07</td><td>0.33</td><td>0.05</td><td>-0.12</td><td>0.18</td><td>0.07</td><td>0.10</td></tr>
+              <tr><td>是</td><td>0.09</td><td>0.27</td><td>-0.11</td><td>0.08</td><td>0.14</td><td>-0.06</td><td>0.16</td><td>0.02</td></tr>
+              <tr><td>中</td><td>0.14</td><td>0.18</td><td>0.41</td><td>-0.03</td><td>0.07</td><td>0.12</td><td>0.09</td><td>0.05</td></tr>
+              <tr><td>国</td><td>0.05</td><td>0.11</td><td>0.29</td><td>0.04</td><td>-0.08</td><td>0.10</td><td>0.13</td><td>0.06</td></tr>
+              <tr><td>人</td><td>0.17</td><td>0.10</td><td>0.25</td><td>-0.02</td><td>0.06</td><td>0.09</td><td>0.11</td><td>0.03</td></tr>
+            </tbody>
+          </table>
+
+          <p class="small" style="margin-top:8px"><b>Key 矩阵 K（8 维）</b></p>
+          <table id="kTable">
+            <thead>
+              <tr><th>字符</th><th>d1</th><th>d2</th><th>d3</th><th>d4</th><th>d5</th><th>d6</th><th>d7</th><th>d8</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>我</td><td>0.18</td><td>0.05</td><td>-0.12</td><td>0.06</td><td>0.10</td><td>-0.04</td><td>0.09</td><td>0.02</td></tr>
+              <tr><td>是</td><td>0.31</td><td>-0.06</td><td>0.08</td><td>0.12</td><td>-0.03</td><td>0.07</td><td>0.04</td><td>0.11</td></tr>
+              <tr><td>中</td><td>0.07</td><td>0.22</td><td>0.35</td><td>-0.02</td><td>0.05</td><td>0.14</td><td>0.06</td><td>0.08</td></tr>
+              <tr><td>国</td><td>0.02</td><td>0.19</td><td>0.37</td><td>0.03</td><td>0.01</td><td>0.16</td><td>0.05</td><td>0.12</td></tr>
+              <tr><td>人</td><td>0.12</td><td>0.09</td><td>0.26</td><td>0.01</td><td>0.04</td><td>0.11</td><td>0.03</td><td>0.10</td></tr>
+            </tbody>
+          </table>
+
+          <p class="small" style="margin-top:8px"><b>Value 矩阵 V（8 维）</b></p>
+          <table id="vTable_step2">
+            <thead>
+              <tr><th>字符</th><th>d1</th><th>d2</th><th>d3</th><th>d4</th><th>d5</th><th>d6</th><th>d7</th><th>d8</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>我</td><td>0.26</td><td>0.14</td><td>-0.03</td><td>0.20</td><td>0.05</td><td>-0.12</td><td>0.08</td><td>0.11</td></tr>
+              <tr><td>是</td><td>0.04</td><td>0.22</td><td>0.19</td><td>-0.05</td><td>0.09</td><td>0.03</td><td>0.16</td><td>-0.02</td></tr>
+              <tr><td>中</td><td>0.33</td><td>0.12</td><td>0.28</td><td>0.07</td><td>-0.04</td><td>0.18</td><td>0.10</td><td>0.06</td></tr>
+              <tr><td>国</td><td>0.16</td><td>0.30</td><td>0.25</td><td>0.11</td><td>0.02</td><td>0.05</td><td>0.07</td><td>0.15</td></tr>
+              <tr><td>人</td><td>0.21</td><td>0.18</td><td>0.31</td><td>0.09</td><td>-0.06</td><td>0.12</td><td>0.04</td><td>0.13</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 步骤 3 -->
+      <section class="step">
+        <h2>3）计算 Query 和 Key 的点积得到注意力分数</h2>
+        <div class="box">
+          <span class="formula">Scores = Q·K^T</span>
+          <p class="small" style="margin:8px 0 6px">下表为一个示例的未缩放注意力分数矩阵（行=Query，列=Key）。数值越大，表示该行字符越关注该列字符。</p>
+          <div class="controls">
+            <button class="btn" onclick="hlRow(0)">查看 我 的注意力</button>
+            <button class="btn" onclick="hlRow(1)">查看 是 的注意力</button>
+            <button class="btn" onclick="hlRow(2)">查看 中 的注意力</button>
+            <button class="btn" onclick="hlRow(3)">查看 国 的注意力</button>
+            <button class="btn" onclick="hlRow(4)">查看 人 的注意力</button>
+            <button class="btn" onclick="clearHL()">重置</button>
+          </div>
+          <table id="scoreTable">
+            <thead>
+              <tr><th>Q\K</th><th>我</th><th>是</th><th>中</th><th>国</th><th>人</th></tr>
+            </thead>
+            <tbody>
+              <tr><th>我</th><td>0.90</td><td>0.60</td><td>0.30</td><td>0.20</td><td>0.40</td></tr>
+              <tr><th>是</th><td>0.50</td><td>0.80</td><td>0.40</td><td>0.30</td><td>0.20</td></tr>
+              <tr><th>中</th><td>0.20</td><td>0.30</td><td>0.90</td><td>0.70</td><td>0.50</td></tr>
+              <tr><th>国</th><td>0.10</td><td>0.20</td><td>0.70</td><td>0.85</td><td>0.60</td></tr>
+              <tr><th>人</th><td>0.30</td><td>0.20</td><td>0.50</td><td>0.70</td><td>0.80</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 步骤 4 -->
+      <section class="step">
+        <h2>4）对注意力分数进行缩放和 softmax 归一化</h2>
+        <div class="box">
+          <p class="small"><b>缩放：</b>令 d_k=8，则 √d_k≈2.828，将上表每个分数除以 √d_k，缓解数值过大造成的梯度/分布问题。</p>
+          <p class="small"><b>Softmax：</b>对每一行做 softmax，使其成为概率分布，且每行和为 1。</p>
+          <div class="note">
+            示例（对"中"这一行）：原始分数 [0.20, 0.30, 0.90, 0.70, 0.50] → 缩放后 [0.071, 0.106, 0.318, 0.248, 0.177] → softmax 约为 [0.178, 0.184, 0.228, 0.212, 0.198]。
+          </div>
+          <script>
+            // 高亮"中"行示例
+            document.addEventListener('DOMContentLoaded', ()=>{
+              const scoreTable = document.getElementById('scoreTable');
+              if(scoreTable && scoreTable.tBodies[0]){
+                const zhongRow = scoreTable.tBodies[0].rows[2]; // "中"是第3行(索引2)
+                if(zhongRow) zhongRow.classList.add('example-row-zhong');
+              }
+            });
+          </script>
+          
+          <!-- 新增：缩放后分数矩阵与Softmax权重矩阵 -->
+          <p class="small" style="margin-top:8px"><b>缩放后分数矩阵（Scores/√d_k）</b></p>
+          <table id="scaledTable"></table>
+          <p class="small" style="margin-top:10px"><b>Softmax 权重矩阵（逐行归一化，行和=1）</b></p>
+          <table id="softmaxTable"></table>
+        </div>
+      </section>
+
+      <!-- 步骤 5 -->
+      <section class="step">
+        <h2>5）使用注意力权重对 Value 矩阵进行加权求和</h2>
+        <div class="box">
+          <span class="formula">Output = softmax(Scores/√d_k) · V</span>
+          <p class="small">这一步得到每个字符的新表示。例如对"我"：</p>
+          <div class="note">
+            <p><strong>"我"的加权求和计算过程：</strong></p>
+            <p>根据"我"行的分数 [0.90, 0.60, 0.30, 0.20, 0.40] 经缩放和softmax后，权重约为 [0.231, 0.208, 0.187, 0.180, 0.194]</p>
+            <p><strong>各维度计算示例：</strong></p>
+            <ul style="font-size:12px; margin:5px 0; padding-left:20px;">
+              <li><strong>d1维度：</strong> Output_我[d1] = 0.231×0.26 + 0.208×0.04 + 0.187×0.33 + 0.180×0.16 + 0.194×0.21 = 0.200</li>
+               <li><strong>d2维度：</strong> Output_我[d2] = 0.231×0.14 + 0.208×0.22 + 0.187×0.12 + 0.180×0.30 + 0.194×0.18 = 0.190</li>
+               <li><strong>d3维度：</strong> Output_我[d3] = 0.231×(-0.03) + 0.208×0.19 + 0.187×0.28 + 0.180×0.25 + 0.194×0.31 = 0.190</li>
+              <li><strong>d4-d8维度：</strong> 类似计算得到 [0.086, 0.015, 0.044, 0.091, 0.085]</li>
+            </ul>
+            <p><strong>最终结果：</strong> Output_我 = [0.200, 0.190, 0.190, 0.086, 0.015, 0.044, 0.091, 0.085]</p>
+          </div>
+          <script>
+            // 高亮"我"行示例
+            document.addEventListener('DOMContentLoaded', ()=>{
+              const scoreTable = document.getElementById('scoreTable');
+              if(scoreTable && scoreTable.tBodies[0]){
+                const woRow = scoreTable.tBodies[0].rows[0]; // "我"是第1行(索引0)
+                if(woRow) woRow.classList.add('example-row-zhong'); // 使用绿色高亮
+              }
+              
+              // 同时高亮所有表格中的"我"行
+              setTimeout(()=>{
+                // 高亮"我"行（索引0）
+                const scaledTable = document.getElementById('scaledTable');
+                if(scaledTable && scaledTable.tBodies[0]){
+                  const woRowScaled = scaledTable.tBodies[0].rows[0];
+                  if(woRowScaled) woRowScaled.classList.add('example-row-zhong');
+                }
+                
+                const softmaxTable = document.getElementById('softmaxTable');
+                if(softmaxTable && softmaxTable.tBodies[0]){
+                  const woRowSoftmax = softmaxTable.tBodies[0].rows[0];
+                  if(woRowSoftmax) woRowSoftmax.classList.add('example-row-zhong');
+                }
+                
+                const vTable = document.getElementById('vTable');
+                if(vTable && vTable.tBodies[0]){
+                  // 高亮d1列（第1列，索引1，因为第0列是字符名）
+                  for(let i = 0; i < vTable.tBodies[0].rows.length; i++){
+                    const cell = vTable.tBodies[0].rows[i].cells[1]; // d1列
+                    if(cell) cell.classList.add('example-col-d1');
+                  }
+                  // 同时高亮表头中的d1
+                  if(vTable.tHead && vTable.tHead.rows[0]){
+                    const d1Header = vTable.tHead.rows[0].cells[1];
+                    if(d1Header) d1Header.classList.add('example-col-d1');
+                  }
+                }
+                
+                const outTable = document.getElementById('outTable');
+                if(outTable && outTable.tBodies[0]){
+                  // 高亮"我"行（第0行，索引0）
+                  const woRowOut = outTable.tBodies[0].rows[0];
+                  if(woRowOut) woRowOut.classList.add('example-row-zhong');
+                }
+              }, 100);
+            });
+          </script>
+          <p class="muted">直观理解：模型学习“我是中国人”中各字符间的依赖关系，例如“中-国”强关联，“我-是”与主谓关系相关，“人”与“中/国”关联补充国籍语义。</p>
+          
+          <!-- 新增：V 矩阵示例（8维）与输出表示（权重×V）（8维） -->
+          <p class="small" style="margin-top:10px"><b>Value 矩阵示例（8 维）</b></p>
+          <table id="vTable"></table>
+          <p class="small" style="margin-top:10px"><b>输出表示 Output（权重 × V）（8 维）</b></p>
+          <table id="outTable"></table>
+        </div>
+      </section>
+      <!-- 附录：固定实例矩阵（用户提供） -->
+      <section class="step">
+        <h2>附录）固定实例矩阵（Softmax、V、Output）</h2>
+        <div class="box">
+          <p class="small"><b>Softmax 权重矩阵（逐行归一化，行和=1）</b></p>
+          <table id="softmaxFixedTable">
+            <thead>
+              <tr><th>Q\K</th><th>我</th><th>是</th><th>中</th><th>国</th><th>人</th></tr>
+            </thead>
+            <tbody>
+              <tr><th>我</th><td>0.231</td><td>0.208</td><td>0.187</td><td>0.180</td><td>0.194</td></tr>
+              <tr><th>是</th><td>0.204</td><td>0.227</td><td>0.197</td><td>0.190</td><td>0.183</td></tr>
+              <tr><th>中</th><td>0.178</td><td>0.184</td><td>0.228</td><td>0.212</td><td>0.198</td></tr>
+              <tr><th>国</th><td>0.173</td><td>0.180</td><td>0.214</td><td>0.226</td><td>0.207</td></tr>
+              <tr><th>人</th><td>0.186</td><td>0.179</td><td>0.199</td><td>0.214</td><td>0.222</td></tr>
+            </tbody>
+          </table>
+
+          <p class="small" style="margin-top:10px"><b>Value 矩阵示例（8 维）</b></p>
+          <table id="vFixedTable">
+            <thead>
+              <tr><th>字符</th><th>d1</th><th>d2</th><th>d3</th><th>d4</th><th>d5</th><th>d6</th><th>d7</th><th>d8</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>我</td><td>0.26</td><td>0.14</td><td>-0.03</td><td>0.20</td><td>0.05</td><td>-0.12</td><td>0.08</td><td>0.11</td></tr>
+              <tr><td>是</td><td>0.04</td><td>0.22</td><td>0.19</td><td>-0.05</td><td>0.09</td><td>0.03</td><td>0.16</td><td>-0.02</td></tr>
+              <tr><td>中</td><td>0.33</td><td>0.12</td><td>0.28</td><td>0.07</td><td>-0.04</td><td>0.18</td><td>0.10</td><td>0.06</td></tr>
+              <tr><td>国</td><td>0.16</td><td>0.30</td><td>0.25</td><td>0.11</td><td>0.02</td><td>0.05</td><td>0.07</td><td>0.15</td></tr>
+              <tr><td>人</td><td>0.21</td><td>0.18</td><td>0.31</td><td>0.09</td><td>-0.06</td><td>0.12</td><td>0.04</td><td>0.13</td></tr>
+            </tbody>
+          </table>
+
+          <p class="small" style="margin-top:10px"><b>输出表示 Output（权重 × V）（8 维）</b></p>
+          <table id="outFixedTable">
+            <thead>
+              <tr><th>字符</th><th>d1</th><th>d2</th><th>d3</th><th>d4</th><th>d5</th><th>d6</th><th>d7</th><th>d8</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>我</td><td>0.200</td><td>0.190</td><td>0.190</td><td>0.086</td><td>0.015</td><td>0.044</td><td>0.091</td><td>0.085</td></tr>
+              <tr><td>是</td><td>0.196</td><td>0.192</td><td>0.196</td><td>0.081</td><td>0.016</td><td>0.049</td><td>0.093</td><td>0.082</td></tr>
+              <tr><td>中</td><td>0.204</td><td>0.192</td><td>0.208</td><td>0.083</td><td>0.009</td><td>0.060</td><td>0.089</td><td>0.087</td></tr>
+              <tr><td>国</td><td>0.203</td><td>0.195</td><td>0.210</td><td>0.084</td><td>0.008</td><td>0.059</td><td>0.088</td><td>0.089</td></tr>
+              <tr><td>人</td><td>0.202</td><td>0.193</td><td>0.207</td><td>0.086</td><td>0.008</td><td>0.056</td><td>0.087</td><td>0.090</td></tr>
+            </tbody>
+          </table>
+          <div class="note" style="margin-top:10px">
+            上表直接展示了固定示例：给定每一行的 softmax 权重后，与对应的 Value 向量做加权求和，得到 8 维输出表示。可与上方动态可视化对照理解。
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    function hlRow(idx){
+      clearHL();
+      const tb = document.getElementById('scoreTable').tBodies[0];
+      if(!tb) return;
+      for(let r=0;r<tb.rows.length;r++){
+        if(r===idx){ tb.rows[r].classList.add('hl'); }
+      }
+    }
+    function clearHL(){
+      const tb = document.getElementById('scoreTable').tBodies[0];
+      if(!tb) return;
+      for(let r=0;r<tb.rows.length;r++) tb.rows[r].classList.remove('hl');
+    }
+
+    // 新增：从分数矩阵生成缩放和softmax表格，并基于示例V向量计算输出
+    function parseScoreMatrix(){
+      const table = document.getElementById('scoreTable');
+      const headers = Array.from(table.tHead.rows[0].cells).slice(1).map(th=>th.textContent.trim());
+      const bodyRows = Array.from(table.tBodies[0].rows);
+      const rowHeaders = bodyRows.map(r=>r.cells[0].textContent.trim());
+      const mat = bodyRows.map(r=>Array.from(r.cells).slice(1).map(td=>parseFloat(td.textContent)));
+      return {headers, rowHeaders, mat};
+    }
+
+    function softmaxRow(row){
+      const max = Math.max(...row);
+      const exps = row.map(v=>Math.exp(v - max));
+      const sum = exps.reduce((a,b)=>a+b,0);
+      return exps.map(v=>v/sum);
+    }
+
+    function renderMatrixTable(tableId, topLeft, colHeaders, rowHeaders, matrix, decimals=3){
+      const tbl = document.getElementById(tableId);
+      if(!tbl) return;
+      let html = '<thead><tr><th>'+topLeft+'</th>' + colHeaders.map(h=>'<th>'+h+'</th>').join('') + '</tr></thead><tbody>';
+      for(let i=0;i<matrix.length;i++){
+        html += '<tr><th>'+rowHeaders[i]+'</th>' + matrix[i].map(v=>'<td>'+Number(v).toFixed(decimals)+'</td>').join('') + '</tr>';
+      }
+      html += '</tbody>';
+      tbl.innerHTML = html;
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      try{
+        const {headers, rowHeaders, mat} = parseScoreMatrix();
+        const d_k = 8, scale = Math.sqrt(d_k); // ≈2.828
+        const scaled = mat.map(row=>row.map(v=>v/scale));
+        const weights = scaled.map(softmaxRow);
+
+        // 渲染缩放后分数与Softmax权重矩阵
+        renderMatrixTable('scaledTable', 'Q\\K', headers, rowHeaders, scaled, 3);
+        renderMatrixTable('softmaxTable', 'Q\\K', headers, rowHeaders, weights, 3);
+
+        // 示例 V（8维），按 headers 顺序：我、是、中、国、人（与步骤2 V表一致）
+        const Vtokens = headers;
+        const V = [
+          [0.26, 0.14, -0.03, 0.20, 0.05, -0.12, 0.08, 0.11],
+          [0.04, 0.22, 0.19, -0.05, 0.09, 0.03, 0.16, -0.02],
+          [0.33, 0.12, 0.28, 0.07, -0.04, 0.18, 0.10, 0.06],
+          [0.16, 0.30, 0.25, 0.11, 0.02, 0.05, 0.07, 0.15],
+          [0.21, 0.18, 0.31, 0.09, -0.06, 0.12, 0.04, 0.13]
+        ];
+
+        // 渲染 V 表格（8 维）
+        const vHeaders = Array.from({length: V[0].length}, (_,i)=>'d'+(i+1));
+        renderMatrixTable('vTable', '字符', vHeaders, Vtokens, V, 2);
+
+        // 计算输出：weights × V（8 维）
+        const out = weights.map(rowW=>{
+          const dims = V[0].length;
+          const o = new Array(dims).fill(0);
+          for(let j=0;j<V.length;j++){
+            for(let d=0; d<dims; d++){
+              o[d] += rowW[j]*V[j][d];
+            }
+          }
+          return o;
+        });
+        renderMatrixTable('outTable', '字符', vHeaders, rowHeaders, out, 3);
+      }catch(err){ console.error('可视化计算出错：', err); }
+    });
+  </script>
+</body>
+</html>

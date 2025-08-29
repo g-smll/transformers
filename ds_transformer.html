@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformer注意力机制 - 中文示例</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        header {
+            background: #4a69bd;
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        .explanation {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #4a69bd;
+        }
+        .explanation h2 {
+            color: #4a69bd;
+            margin-bottom: 15px;
+        }
+        .steps {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        .steps li {
+            margin-bottom: 8px;
+        }
+        .visualization {
+            background: #f1f2f6;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .visualization h2 {
+            color: #4a69bd;
+            margin-bottom: 20px;
+        }
+        .text-input {
+            margin-bottom: 20px;
+        }
+        .text-input input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        .matrix-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .matrix {
+            border: 2px solid #4a69bd;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .matrix th, .matrix td {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            border: 1px solid #bdc3c7;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .matrix th {
+            background: #4a69bd;
+            color: white;
+            font-weight: normal;
+        }
+        .operation {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4a69bd;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        button {
+            background: #4a69bd;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        button:hover {
+            background: #3c58a8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .highlight {
+            background: #ffeaa7 !important;
+        }
+        .result-cell {
+            background: #a29bfe;
+            color: white;
+        }
+        .step-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #dfe4ea;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .attention-vis {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .token {
+            padding: 10px 15px;
+            background: #4a69bd;
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .attention-line {
+            stroke: #4a69bd;
+            stroke-width: 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Transformer注意力机制</h1>
+            <p class="subtitle">可视化中文文本"陈纲是云人"的处理过程</p>
+        </header>
+        
+        <div class="content">
+            <div class="explanation">
+                <h2>注意力机制原理</h2>
+                <p>Transformer使用注意力机制来确定输入序列中不同部分的重要性：</p>
+                <ol class="steps">
+                    <li>将输入文本转换为词嵌入向量</li>
+                    <li>通过线性变换生成Query、Key和Value矩阵</li>
+                    <li>计算Query和Key的点积得到注意力分数</li>
+                    <li>对注意力分数进行缩放和softmax归一化</li>
+                    <li>使用注意力权重对Value矩阵进行加权求和</li>
+                </ol>
+                <p>对于中文文本"陈纲是云人"，模型会学习每个字符如何关注其他字符，从而捕捉语义关系。</p>
+                
+                <div class="step-info">
+                    <p>当前步骤: <span id="current-step">初始化</span></p>
+                    <p>说明: <span id="step-desc">准备计算注意力机制</span></p>
+                </div>
+            </div>
+            
+            <div class="visualization">
+                <h2>注意力计算过程</h2>
+                
+                <div class="text-input">
+                    <input type="text" id="input-text" value="陈纲是云人" readonly>
+                </div>
+                
+                <div class="matrix-container">
+                    <table class="matrix" id="matrixQ">
+                        <tr><th></th><th>Q₁</th><th>Q₂</th></tr>
+                        <tr><th>陈</th><td>0.8</td><td>-0.2</td></tr>
+                        <tr><th>纲</th><td>0.5</td><td>0.6</td></tr>
+                        <tr><th>是</th><td>0.3</td><td>-0.7</td></tr>
+                        <tr><th>云</th><td>-0.4</td><td>0.9</td></tr>
+                        <tr><th>人</th><td>0.1</td><td>0.4</td></tr>
+                    </table>
+                    
+                    <div class="operation">×</div>
+                    
+                    <table class="matrix" id="matrixK">
+                        <tr><th></th><th>K₁</th><th>K₂</th></tr>
+                        <tr><th>陈</th><td>0.7</td><td>0.3</td></tr>
+                        <tr><th>纲</th><td>-0.1</td><td>0.8</td></tr>
+                        <tr><th>是</th><td>0.5</td><td>-0.5</td></tr>
+                        <tr><th>云</th><td>0.2</td><td>0.6</td></tr>
+                        <tr><th>人</th><td>-0.3</td><td>0.4</td></tr>
+                    </table>
+                    
+                    <div class="operation">=</div>
+                    
+                    <table class="matrix" id="matrixQK">
+                        <tr><th></th><th>陈</th><th>纲</th><th>是</th><th>云</th><th>人</th></tr>
+                        <tr><th>陈</th><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr>
+                        <tr><th>纲</th><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr>
+                        <tr><th>是</th><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr>
+                        <tr><th>云</th><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr>
+                        <tr><th>人</th><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr>
+                    </table>
+                </div>
+                
+                <div class="matrix-container">
+                    <table class="matrix" id="matrixSoftmax">
+                        <tr><th></th><th>陈</th><th>纲</th><th>是</th><th>云</th><th>人</th></tr>
+                        <tr><th>陈</th><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr>
+                        <tr><th>纲</th><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr>
+                        <tr><th>是</th><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr>
+                        <tr><th>云</th><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr>
+                        <tr><th>人</th><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr>
+                    </table>
+                    
+                    <div class="operation">×</div>
+                    
+                    <table class="matrix" id="matrixV">
+                        <tr><th></th><th>V₁</th><th>V₂</th></tr>
+                        <tr><th>陈</th><td>0.4</td><td>-0.3</td></tr>
+                        <tr><th>纲</th><td>0.7</td><td>0.2</td></tr>
+                        <tr><th>是</th><td>-0.2</td><td>0.5</td></tr>
+                        <tr><th>云</th><td>0.1</td><td>0.8</td></tr>
+                        <tr><th>人</th><td>-0.5</td><td>0.3</td></tr>
+                    </table>
+                    
+                    <div class="operation">=</div>
+                    
+                    <table class="matrix" id="matrixResult">
+                        <tr><th></th><th>输出₁</th><th>输出₂</th></tr>
+                        <tr><th>陈</th><td>?</td><td>?</td></tr>
+                        <tr><th>纲</th><td>?</td><td>?</td></tr>
+                        <tr><th>是</th><td>?</td><td>?</td></tr>
+                        <tr><th>云</th><td>?</td><td>?</td></tr>
+                        <tr><th>人</th><td>?</td><td>?</td></tr>
+                    </table>
+                </div>
+                
+                <div class="attention-vis">
+                    <div class="token">陈</div>
+                    <div class="token">纲</div>
+                    <div class="token">是</div>
+                    <div class="token">云</div>
+                    <div class="token">人</div>
+                </div>
+                
+                <div class="controls">
+                    <button id="prevBtn">上一步</button>
+                    <button id="nextBtn">下一步</button>
+                    <button id="resetBtn">重置</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        const totalSteps = 5;
+        
+        // 矩阵数据
+        const Q = [
+            [0.8, -0.2],
+            [0.5, 0.6],
+            [0.3, -0.7],
+            [-0.4, 0.9],
+            [0.1, 0.4]
+        ];
+        
+        const K = [
+            [0.7, 0.3],
+            [-0.1, 0.8],
+            [0.5, -0.5],
+            [0.2, 0.6],
+            [-0.3, 0.4]
+        ];
+        
+        const V = [
+            [0.4, -0.3],
+            [0.7, 0.2],
+            [-0.2, 0.5],
+            [0.1, 0.8],
+            [-0.5, 0.3]
+        ];
+        
+        // 计算矩阵乘法
+        function multiplyMatrices(a, b) {
+            const aRows = a.length, aCols = a[0].length;
+            const bRows = b.length, bCols = b[0].length;
+            
+            if (aCols !== bRows) {
+                throw new Error("矩阵无法相乘: 第一个矩阵的列数必须等于第二个矩阵的行数");
+            }
+            
+            const result = new Array(aRows);
+            for (let i = 0; i < aRows; i++) {
+                result[i] = new Array(bCols);
+                for (let j = 0; j < bCols; j++) {
+                    result[i][j] = 0;
+                    for (let k = 0; k < aCols; k++) {
+                        result[i][j] += a[i][k] * b[k][j];
+                    }
+                }
+            }
+            
+            return result;
+        }
+        
+        // 计算softmax
+        function softmax(matrix) {
+            const result = [];
+            for (let i = 0; i < matrix.length; i++) {
+                result[i] = [];
+                const row = matrix[i];
+                const maxVal = Math.max(...row);
+                let sum = 0;
+                
+                // 减去最大值以提高数值稳定性
+                const expValues = row.map(val => Math.exp(val - maxVal));
+                sum = expValues.reduce((acc, val) => acc + val, 0);
+                
+                for (let j = 0; j < row.length; j++) {
+                    result[i][j] = expValues[j] / sum;
+                }
+            }
+            return result;
+        }
+        
+        // 更新矩阵显示
+        function updateMatrixDisplay(matrixId, data, highlightCell = null) {
+            const matrix = document.getElementById(matrixId);
+            for (let i = 0; i < data.length; i++) {
+                for (let j = 0; j < data[i].length; j++) {
+                    const cell = matrix.rows[i+1].cells[j+1]; // +1 to skip header
+                    cell.textContent = typeof data[i][j] === 'number' ? 
+                                      data[i][j].toFixed(2) : data[i][j];
+                    
+                    if (highlightCell && highlightCell[0] === i && highlightCell[1] === j) {
+                        cell.classList.add('highlight');
+                    } else {
+                        cell.classList.remove('highlight');
+                    }
+                }
+            }
+        }
+        
+        // 显示步骤
+        function showStep(step) {
+            const stepTexts = [
+                "初始化: 准备计算注意力机制",
+                "步骤 1: Query和Key矩阵相乘 (Q × Kᵀ)",
+                "步骤 2: 缩放注意力分数 (除以√dₖ)",
+                "步骤 3: 应用Softmax函数",
+                "步骤 4: 与Value矩阵相乘 (注意力权重 × V)",
+                "完成: 得到最终的注意力输出"
+            ];
+            
+            const stepDesc = [
+                "准备计算注意力机制",
+                "计算每个查询与所有键的相似度",
+                "缩放分数以提高数值稳定性",
+                "将分数转换为概率分布",
+                "使用注意力权重对值进行加权求和",
+                "完成注意力计算"
+            ];
+            
+            document.getElementById('current-step').textContent = stepTexts[step];
+            document.getElementById('step-desc').textContent = stepDesc[step];
+            
+            switch(step) {
+                case 0:
+                    // 初始化状态
+                    updateMatrixDisplay('matrixQ', Q);
+                    updateMatrixDisplay('matrixK', K);
+                    updateMatrixDisplay('matrixV', V);
+                    break;
+                case 1:
+                    // 计算Q×K
+                    const qk = multiplyMatrices(Q, transposeMatrix(K));
+                    updateMatrixDisplay('matrixQK', qk);
+                    break;
+                case 2:
+                    // 缩放 (除以√d_k，这里d_k=2)
+                    const qkResult = multiplyMatrices(Q, transposeMatrix(K));
+                    const scaled = qkResult.map(row => row.map(val => val / Math.sqrt(2)));
+                    updateMatrixDisplay('matrixQK', scaled);
+                    break;
+                case 3:
+                    const qkResult2 = multiplyMatrices(Q, transposeMatrix(K));
+                    const scaledResult = qkResult2.map(row => row.map(val => val / Math.sqrt(2)));
+                    const softmaxResult = softmax(scaledResult);
+                    updateMatrixDisplay('matrixSoftmax', softmaxResult);
+                    break;
+                case 4:
+                    const qkResult3 = multiplyMatrices(Q, transposeMatrix(K));
+                    const scaledResult2 = qkResult3.map(row => row.map(val => val / Math.sqrt(2)));
+                    const softmaxResult2 = softmax(scaledResult2);
+                    const finalResult = multiplyMatrices(softmaxResult2, V);
+                    updateMatrixDisplay('matrixResult', finalResult);
+                    break;
+            }
+        }
+        
+        // 矩阵转置
+        function transposeMatrix(matrix) {
+            return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]));
+        }
+        
+        // 初始化
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (currentStep < totalSteps) {
+                currentStep++;
+                showStep(currentStep);
+            }
+        });
+        
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentStep > 0) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            currentStep = 0;
+            showStep(currentStep);
+            
+            // 重置所有矩阵显示
+            const qkCells = document.querySelectorAll('#matrixQK td');
+            qkCells.forEach(cell => {
+                cell.textContent = '?';
+                cell.classList.remove('highlight');
+            });
+            
+            const softmaxCells = document.querySelectorAll('#matrixSoftmax td');
+            softmaxCells.forEach(cell => {
+                cell.textContent = '?';
+                cell.classList.remove('highlight');
+            });
+            
+            const resultCells = document.querySelectorAll('#matrixResult td');
+            resultCells.forEach(cell => {
+                cell.textContent = '?';
+                cell.classList.remove('highlight', 'result-cell');
+            });
+        });
+        
+        // 初始显示
+        showStep(currentStep);
+    </script>
+</body>
+</html>
